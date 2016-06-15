@@ -28,7 +28,8 @@ defmodule DonutsServer.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:socket, "~> 0.3.4"}
+      {:socket, "~> 0.3.4"},
+      {:message_pack, "~> 0.2.0"},
     ]
   end
 end
