@@ -24,12 +24,12 @@ defmodule DonutsServer do
     client = socket |> Socket.accept!
     Logger.info("Connected")
     client |> Socket.Stream.send!("Connection established!\n")
-    task = Task.async (fn -> tcp_client_loop(socket,client) end)
+    task = Task.async (fn -> tcp_client_loop(client) end)
     Logger.info("Waiting next connection")
 
     tcp_loop(socket)
   end
-  defp tcp_client_loop(socket,client) do
+  defp tcp_client_loop(client) do
     data = client |> Socket.Stream.recv! 
     if is_nil(data) do
       client |> Socket.Stream.close
@@ -39,7 +39,32 @@ defmodule DonutsServer do
 
       Logger.info("Received: " <> data)
       client |> Socket.Stream.send!("You sent #{data} to the donuts TCP server\n")
-      tcp_client_loop(socket,client)
+      tcp_client_loop(client)
+    end
+  end
+
+  def websocket_server do
+    {:ok, server} = Socket.Web.listen 40002
+    websocket_loop server
+  end
+  defp websocket_loop(socket) do
+    client = socket |> Socket.Web.accept!
+    client |> Socket.Web.accept!
+    Logger.info("Connected")
+    client |> Socket.Web.send!({:pong, "Connection established!\n"})
+    Task.async(fn -> websocket_client_loop(client) end)
+    Logger.info("Waiting next connection")
+
+    websocket_loop(socket)
+  end
+  defp websocket_client_loop(client) do
+    case client |> Socket.Web.recv! do
+      {:text, data} -> 
+        Logger.info("Received: " <> data)
+        client |> Socket.Web.send!({:text, "You sent #{data} to the donuts Websocket server\n"}) 
+        websocket_client_loop(client)
+      :close -> 
+        Logger.info("Connection closed.")
     end
   end
 end
