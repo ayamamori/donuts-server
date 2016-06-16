@@ -12,7 +12,7 @@ defmodule DonutsServer do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
     Logger.info("Received: " <> data)
-    :ok = socket |> Socket.Datagram.send("You sent #{data} to the donuts UDP server", client) 
+    :ok = socket |> Socket.Datagram.send("You sent #{data} to the donuts UDP server\n", client) 
     udp_loop socket
   end
 
@@ -23,7 +23,7 @@ defmodule DonutsServer do
   defp tcp_loop(socket) do
     client = socket |> Socket.accept!
     Logger.info("Connected")
-    client |> Socket.Stream.send!("Connection established!")
+    client |> Socket.Stream.send!("Connection established!\n")
     task = Task.async (fn -> tcp_client_loop(socket,client) end)
     Logger.info("Waiting next connection")
 
@@ -38,7 +38,7 @@ defmodule DonutsServer do
       data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
 
       Logger.info("Received: " <> data)
-      client |> Socket.Stream.send!("You sent #{data} to the donuts TCP server")
+      client |> Socket.Stream.send!("You sent #{data} to the donuts TCP server\n")
       tcp_client_loop(socket,client)
     end
   end
