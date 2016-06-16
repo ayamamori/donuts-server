@@ -28,3 +28,13 @@ use Mix.Config
 # here (which is why it is important to import them last).
 #
 #     import_config "#{Mix.env}.exs"
+
+config :logger,
+  backends: [
+    :console,
+    {LoggerFileBackend, :log_fileoutput},
+  ]
+
+config :logger, :log_fileoutput,
+  path: "log/donuts_server.log",
+  level: :info

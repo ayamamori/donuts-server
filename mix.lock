@@ -1,3 +1,4 @@
-%{"message_pack": {:hex, :message_pack, "0.2.0", "244350d139b96c94729666dfac24440c3b1e8b3d1cc67287e78b2b6779593020", [:mix], []},
+%{"logger_file_backend": {:hex, :logger_file_backend, "0.0.8", "1cdf1c492d6f64ee5d76d423cd76e2282ae3a7800468cb8b305bdfd1e775c07b", [:mix], []},
+  "message_pack": {:hex, :message_pack, "0.2.0", "244350d139b96c94729666dfac24440c3b1e8b3d1cc67287e78b2b6779593020", [:mix], []},
   "msgpack": {:hex, :msgpack, "0.5.0", "05e87ba33ef98109ffb408c6bf4acfa892fccb1b6054bb52233bef1537e38a33", [:rebar3], []},
   "socket": {:hex, :socket, "0.3.4", "4fed773102445eb333b4536610b8d9a9ba3c3e85cc84c7491991af9653819d65", [:mix], []}}

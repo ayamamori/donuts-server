@@ -30,6 +30,7 @@ defmodule DonutsServer.Mixfile do
     [
       {:socket, "~> 0.3.4"},
       {:message_pack, "~> 0.2.0"},
+      {:logger_file_backend, "~> 0.0.8"},
     ]
   end
 end
