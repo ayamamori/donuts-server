@@ -23,7 +23,8 @@ defmodule DonutsServer do
   defp tcp_loop(socket) do
     client = socket |> Socket.accept!
     Logger.info("Connected")
-    tcp_client_loop(socket,client)
+    task = Task.async (fn -> tcp_client_loop(socket,client) end)
+    Logger.info("Waiting next connection")
 
     tcp_loop(socket)
   end
