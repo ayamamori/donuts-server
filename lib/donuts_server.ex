@@ -12,7 +12,10 @@ defmodule DonutsServer do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
     Logger.info("Received: " <> data)
-    :ok = socket |> Socket.Datagram.send("You sent #{data} to the donuts UDP server\n", client) 
+    response = RequestHandler.handle(data)
+    Logger.info("To response: " <> response)
+    #:ok = socket |> Socket.Datagram.send("You sent #{response} to the donuts UDP server\n", client) 
+    :ok = socket |> Socket.Datagram.send(response, client) 
     udp_loop socket
   end
 
@@ -21,10 +24,11 @@ defmodule DonutsServer do
     tcp_loop(server)
   end
   defp tcp_loop(socket) do
-    client = socket |> Socket.accept!
+    {:ok, client} = socket |> Socket.accept 
     Logger.info("Connected")
+    Port.info(client) |> IO.inspect
     client |> Socket.Stream.send!("Connection established!\n")
-    task = Task.async (fn -> tcp_client_loop(client) end)
+    Task.async (fn -> tcp_client_loop(client) end)
     Logger.info("Waiting next connection")
 
     tcp_loop(socket)
@@ -38,7 +42,9 @@ defmodule DonutsServer do
       data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
 
       Logger.info("Received: " <> data)
-      client |> Socket.Stream.send!("You sent #{data} to the donuts TCP server\n")
+      response = RequestHandler.handle(data)
+      Logger.info("To response: " <> response)
+      client |> Socket.Stream.send!(response)
       tcp_client_loop(client)
     end
   end
@@ -48,9 +54,9 @@ defmodule DonutsServer do
     websocket_loop server
   end
   defp websocket_loop(socket) do
-    client = socket |> Socket.Web.accept!
-    client |> Socket.Web.accept!
+    client = socket |> Socket.Web.accept! # Got client connection request
     Logger.info("Connected")
+    client |> Socket.Web.accept! # Accept client connection request
     client |> Socket.Web.send!({:pong, "Connection established!\n"})
     Task.async(fn -> websocket_client_loop(client) end)
     Logger.info("Waiting next connection")
@@ -61,7 +67,9 @@ defmodule DonutsServer do
     case client |> Socket.Web.recv! do
       {:text, data} -> 
         Logger.info("Received: " <> data)
-        client |> Socket.Web.send!({:text, "You sent #{data} to the donuts Websocket server\n"}) 
+        response = RequestHandler.handle(data)
+        Logger.info("To response: " <> response)
+        client |> Socket.Web.send!({:text, response})
         websocket_client_loop(client)
       :close -> 
         Logger.info("Connection closed.")
