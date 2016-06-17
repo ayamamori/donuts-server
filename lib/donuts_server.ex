@@ -90,7 +90,7 @@ defmodule DonutsServer do
   end
 
   defp websocket_client_addr(client) do
-    client[:headers]
+    client |> Map.get(:headers) |> Map.get("host")
   end
 
   defp log_tcp(msg, level \\ :info) do
