@@ -4,24 +4,6 @@ defmodule DonutsServer do
     IO.puts "`mix run -e DonutsServer.run` will run this script "
   end
 
-  def udp_server do
-    {:ok, socket} = Socket.UDP.open 40001
-    udp_loop socket
-  end
-  defp udp_loop(socket) do
-    {:ok, {data, client}} = socket |> Socket.Datagram.recv 
-    data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
-    log_udp("Received from #{udp_client_addr client}: " <> data)
-    response = RequestHandler.handle(data)
-    log_udp("To response #{udp_client_addr client}: " <> response)
-    :ok = socket |> Socket.Datagram.send(response, client) 
-    udp_loop socket
-  end
-  defp udp_client_addr(client) do
-    {ipaddr, port} = client
-    (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
-  end
-
   def tcp_server do
     {:ok, server} = Socket.TCP.listen 40000
     tcp_loop(server)
@@ -58,6 +40,24 @@ defmodule DonutsServer do
       (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
     {:error, _} -> "💩"
     end
+  end
+
+  def udp_server do
+    {:ok, socket} = Socket.UDP.open 40001
+    udp_loop socket
+  end
+  defp udp_loop(socket) do
+    {:ok, {data, client}} = socket |> Socket.Datagram.recv 
+    data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
+    log_udp("Received from #{udp_client_addr client}: " <> data)
+    response = RequestHandler.handle(data)
+    log_udp("To response #{udp_client_addr client}: " <> response)
+    :ok = socket |> Socket.Datagram.send(response, client) 
+    udp_loop socket
+  end
+  defp udp_client_addr(client) do
+    {ipaddr, port} = client
+    (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
   end
 
   def websocket_server do
