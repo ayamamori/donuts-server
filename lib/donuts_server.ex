@@ -90,7 +90,8 @@ defmodule DonutsServer do
   end
 
   defp websocket_client_addr(client) do
-    client |> Map.get(:headers) |> Map.get("host")
+    {:ok, {ipaddr, port}} = client |> Map.get(:socket) |> :inet.peername
+    (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
   end
 
   defp log_tcp(msg, level \\ :info) do
