@@ -73,6 +73,8 @@ defmodule DonutsServer do
         websocket_client_loop(client)
       :close -> 
         Logger.info("Connection closed.")
+      {:close, atom, binary} ->
+        Logger.info("Connection closed: " <> Atom.to_string(atom))
     end
   end
 end
