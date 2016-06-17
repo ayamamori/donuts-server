@@ -11,9 +11,9 @@ defmodule DonutsServer do
   defp udp_loop(socket) do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
-    Logger.info("Received: " <> data)
+    log_udp("Received: " <> data)
     response = RequestHandler.handle(data)
-    Logger.info("To response: " <> response)
+    log_udp("To response: " <> response)
     #:ok = socket |> Socket.Datagram.send("You sent #{response} to the donuts UDP server\n", client) 
     :ok = socket |> Socket.Datagram.send(response, client) 
     udp_loop socket
@@ -25,11 +25,11 @@ defmodule DonutsServer do
   end
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
-    Logger.info("Connected")
+    log_tcp("Connected")
     Port.info(client) |> IO.inspect
     client |> Socket.Stream.send!("Connection established!\n")
     Task.async (fn -> tcp_client_loop(client) end)
-    Logger.info("Waiting next connection")
+    log_tcp("Waiting next connection")
 
     tcp_loop(socket)
   end
@@ -37,13 +37,13 @@ defmodule DonutsServer do
     data = client |> Socket.Stream.recv! 
     if is_nil(data) do
       client |> Socket.Stream.close
-      Logger.info("Connection closed")
+      log_tcp("Connection closed")
     else
       data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
 
-      Logger.info("Received: " <> data)
+      log_tcp("Received: " <> data)
       response = RequestHandler.handle(data)
-      Logger.info("To response: " <> response)
+      log_tcp("To response: " <> response)
       client |> Socket.Stream.send!(response)
       tcp_client_loop(client)
     end
@@ -55,26 +55,45 @@ defmodule DonutsServer do
   end
   defp websocket_loop(socket) do
     client = socket |> Socket.Web.accept! # Got client connection request
-    Logger.info("Connected")
+    log_ws("Connected")
     client |> Socket.Web.accept! # Accept client connection request
     client |> Socket.Web.send!({:pong, "Connection established!\n"})
     Task.async(fn -> websocket_client_loop(client) end)
-    Logger.info("Waiting next connection")
+    log_ws("Waiting next connection")
 
     websocket_loop(socket)
   end
   defp websocket_client_loop(client) do
     case client |> Socket.Web.recv! do
       {:text, data} -> 
-        Logger.info("Received: " <> data)
+        log_ws("Received: " <> data)
         response = RequestHandler.handle(data)
-        Logger.info("To response: " <> response)
+        log_ws("To response: " <> response)
         client |> Socket.Web.send!({:text, response})
         websocket_client_loop(client)
       :close -> 
-        Logger.info("Connection closed.")
+        log_ws("Connection closed.")
       {:close, atom, binary} ->
-        Logger.info("Connection closed: " <> Atom.to_string(atom))
+        log_ws("Connection closed: " <> Atom.to_string(atom))
+    end
+  end
+
+  defp log_tcp(msg, level \\ :info) do
+    log(msg, level, :tcp)
+  end
+  defp log_udp(msg, level \\ :info) do
+    log(msg, level, :udp)
+  end
+  defp log_ws(msg, level \\ :info) do
+    log(msg, level, :websocket)
+  end
+  defp log(msg, level, protocol \\ :none) do
+    msg_to_log = "[#{protocol |> Atom.to_string |> String.upcase}] #{msg}"
+    case level do
+      :debug -> Logger.debug(msg_to_log)
+      :info -> Logger.info(msg_to_log)
+      :warn -> Logger.warn(msg_to_log)
+      :error -> Logger.error(msg_to_log)
     end
   end
 end
