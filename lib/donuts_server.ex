@@ -11,11 +11,15 @@ defmodule DonutsServer do
   defp udp_loop(socket) do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
-    log_udp("Received from #{client_addr client}: " <> data)
+    log_udp("Received from #{udp_client_addr client}: " <> data)
     response = RequestHandler.handle(data)
-    log_udp("To response #{client_addr client}: " <> response)
+    log_udp("To response #{udp_client_addr client}: " <> response)
     :ok = socket |> Socket.Datagram.send(response, client) 
     udp_loop socket
+  end
+  defp udp_client_addr(client) do
+    {ipaddr, port} = client
+    (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
   end
 
   def tcp_server do
@@ -25,8 +29,8 @@ defmodule DonutsServer do
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
 
-    log_tcp("Connected from #{client_addr client}")
-    client |> Socket.Stream.send!("Connection from #{client_addr client} established!\n")
+    log_tcp("Connected from #{tcp_client_addr client}")
+    client |> Socket.Stream.send!("Connection from #{tcp_client_addr client} established!\n")
     Task.async (fn -> tcp_client_loop(client) end)
     log_tcp("Waiting next connection")
 
@@ -48,15 +52,23 @@ defmodule DonutsServer do
     end
   end
 
+  defp tcp_client_addr(client) do
+    case :inet.peername(client) do
+    {:ok, {ipaddr, port}} -> 
+      (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
+    {:error, _} -> "💩"
+    end
+  end
+
   def websocket_server do
     {:ok, server} = Socket.Web.listen 40002
     websocket_loop server
   end
   defp websocket_loop(socket) do
     client = socket |> Socket.Web.accept! # Got client connection request
-    log_ws("Connected from #{client_addr client}")
     client |> Socket.Web.accept! # Accept client connection request
-    client |> Socket.Web.send!({:pong, "Connection from #{client_addr client} established!\n"})
+    log_ws("Connected from #{websocket_client_addr client}")
+    client |> Socket.Web.send!({:pong, "Connection from #{websocket_client_addr client} established!\n"})
     Task.async(fn -> websocket_client_loop(client) end)
     log_ws("Waiting next connection")
 
@@ -77,12 +89,8 @@ defmodule DonutsServer do
     end
   end
 
-  defp client_addr(client) do
-    case :inet.peername(client) do
-    {:ok, {ipaddr, port}} -> 
-      (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
-    {:error, _} -> "💩"
-    end
+  defp websocket_client_addr(client) do
+    client[:headers]
   end
 
   defp log_tcp(msg, level \\ :info) do
