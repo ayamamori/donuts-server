@@ -26,7 +26,7 @@ defmodule DonutsServer do
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
     log_tcp("Connected")
-    Port.info(client) |> IO.inspect
+    #Port.info(client) |> IO.inspect
     client |> Socket.Stream.send!("Connection established!\n")
     Task.async (fn -> tcp_client_loop(client) end)
     log_tcp("Waiting next connection")
