@@ -78,8 +78,11 @@ defmodule DonutsServer do
   end
 
   defp client_addr(client) do
-    {:ok, {ipaddr, port}} = :inet.peername(client)
-    Enum.join(Tuple.to_list(ipaddr),".") <> ":"<> Integer.to_string(port)
+    case :inet.peername(client) do
+    {:ok, {ipaddr, port}} -> 
+      (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
+    {:error, _} -> "💩"
+    end
   end
 
   defp log_tcp(msg, level \\ :info) do
