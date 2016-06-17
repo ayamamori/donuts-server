@@ -20,7 +20,7 @@ defmodule RequestHandler do
       "乒" -> "乓"
       "ping" -> "pong"
       x -> ["Some msgpack received, but couldn't be recognized", x]
-    end |> IO.inspect
+    end 
     MessagePack.pack!(resp)
   end
 end

@@ -11,10 +11,9 @@ defmodule DonutsServer do
   defp udp_loop(socket) do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
-    log_udp("Received: " <> data)
+    log_udp("Received from #{client_addr client}: " <> data)
     response = RequestHandler.handle(data)
-    log_udp("To response: " <> response)
-    #:ok = socket |> Socket.Datagram.send("You sent #{response} to the donuts UDP server\n", client) 
+    log_udp("To response #{client_addr client}: " <> response)
     :ok = socket |> Socket.Datagram.send(response, client) 
     udp_loop socket
   end
@@ -25,9 +24,9 @@ defmodule DonutsServer do
   end
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
-    log_tcp("Connected")
-    #Port.info(client) |> IO.inspect
-    client |> Socket.Stream.send!("Connection established!\n")
+
+    log_tcp("Connected from #{client_addr client}")
+    client |> Socket.Stream.send!("Connection from #{client_addr client} established!\n")
     Task.async (fn -> tcp_client_loop(client) end)
     log_tcp("Waiting next connection")
 
@@ -55,9 +54,9 @@ defmodule DonutsServer do
   end
   defp websocket_loop(socket) do
     client = socket |> Socket.Web.accept! # Got client connection request
-    log_ws("Connected")
+    log_ws("Connected from #{client_addr client}")
     client |> Socket.Web.accept! # Accept client connection request
-    client |> Socket.Web.send!({:pong, "Connection established!\n"})
+    client |> Socket.Web.send!({:pong, "Connection from #{client_addr client} established!\n"})
     Task.async(fn -> websocket_client_loop(client) end)
     log_ws("Waiting next connection")
 
@@ -76,6 +75,11 @@ defmodule DonutsServer do
       {:close, atom, binary} ->
         log_ws("Connection closed: " <> Atom.to_string(atom))
     end
+  end
+
+  defp client_addr(client) do
+    {:ok, {ipaddr, port}} = :inet.peername(client)
+    Enum.join(Tuple.to_list(ipaddr),".") <> ":"<> Integer.to_string(port)
   end
 
   defp log_tcp(msg, level \\ :info) do
