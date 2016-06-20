@@ -80,18 +80,18 @@ defmodule DonutsServer do
   end
   defp websocket_client_loop(client) do
     try do 
-    case client |> Socket.Web.recv! do
-      {:text, data} -> 
-        log_ws("Received: " <> data)
-        response = RequestHandler.handle(data)
-        log_ws("To response: " <> response)
-        client |> Socket.Web.send!({:text, response})
-        websocket_client_loop(client)
-      :close -> 
-        log_ws("Connection closed.")
-      {:close, atom, binary} ->
-        log_ws("Connection closed: " <> Atom.to_string(atom))
-    end
+      case client |> Socket.Web.recv! do
+        {:text, data} -> 
+          log_ws("Received: " <> data)
+          response = RequestHandler.handle(data)
+          log_ws("To response: " <> response)
+          client |> Socket.Web.send!({:text, response})
+          websocket_client_loop(client)
+        :close -> 
+          log_ws("Connection closed.")
+        {:close, atom, binary} ->
+          log_ws("Connection closed: " <> Atom.to_string(atom))
+      end
     rescue e ->
       a = client |> Socket.Web.close |> IO.inspect
       log_ws("Connection closed exceptionally")
