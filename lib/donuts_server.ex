@@ -10,27 +10,32 @@ defmodule DonutsServer do
   end
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
-
     log_tcp("Connected from #{tcp_client_addr client}")
     client |> Socket.Stream.send!("Connection from #{tcp_client_addr client} established!\n")
-    Task.async (fn -> tcp_client_loop(client) end)
+    Task.start (fn -> tcp_client_loop(client) end)
     log_tcp("Waiting next connection")
 
     tcp_loop(socket)
   end
   defp tcp_client_loop(client) do
-    data = client |> Socket.Stream.recv! 
-    if is_nil(data) do
-      client |> Socket.Stream.close
-      log_tcp("Connection closed")
-    else
-      data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
+    try do
+      data = client |> Socket.Stream.recv! 
+      if is_nil(data) do
+        client |> Socket.Stream.close
+        log_tcp("Connection closed from client")
+      else
+        data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
 
-      log_tcp("Received: " <> data)
-      response = RequestHandler.handle(data)
-      log_tcp("To response: " <> response)
-      client |> Socket.Stream.send!(response)
-      tcp_client_loop(client)
+        log_tcp("Received: " <> data)
+        response = RequestHandler.handle(data)
+        log_tcp("To response: " <> response)
+        client |> Socket.Stream.send!(response)
+        tcp_client_loop(client)
+      end
+    rescue e -> 
+        client |> Socket.Stream.close
+        log_tcp("Connection closed exceptionally")
+        log_tcp(Exception.format(:error, e))
     end
   end
 
@@ -38,7 +43,6 @@ defmodule DonutsServer do
     case :inet.peername(client) do
     {:ok, {ipaddr, port}} -> 
       (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
-    {:error, _} -> "💩"
     end
   end
 
@@ -69,12 +73,13 @@ defmodule DonutsServer do
     client |> Socket.Web.accept! # Accept client connection request
     log_ws("Connected from #{websocket_client_addr client}")
     client |> Socket.Web.send!({:pong, "Connection from #{websocket_client_addr client} established!\n"})
-    Task.async(fn -> websocket_client_loop(client) end)
+    Task.start(fn -> websocket_client_loop(client) end)
     log_ws("Waiting next connection")
 
     websocket_loop(socket)
   end
   defp websocket_client_loop(client) do
+    try do 
     case client |> Socket.Web.recv! do
       {:text, data} -> 
         log_ws("Received: " <> data)
@@ -87,13 +92,18 @@ defmodule DonutsServer do
       {:close, atom, binary} ->
         log_ws("Connection closed: " <> Atom.to_string(atom))
     end
+    rescue e ->
+      a = client |> Socket.Web.close |> IO.inspect
+      log_ws("Connection closed exceptionally")
+      log_ws(Exception.format(:error, e))
+    end
+
   end
 
   defp websocket_client_addr(client) do
     case client |> Map.get(:socket) |> :inet.peername do
     {:ok, {ipaddr, port}} -> 
       (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
-    {:error, _} -> "💩"
     end
   end
 
