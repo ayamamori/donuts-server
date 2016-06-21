@@ -11,12 +11,27 @@ defmodule DonutsServer do
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
     log_tcp("Connected from #{tcp_client_addr client}")
-    client |> Socket.Stream.send!("Connection from #{tcp_client_addr client} established!\n")
-    Task.start (fn -> tcp_client_loop(client) end)
+    connection=Connection.init(client) |> IO.inspect
+    connection |> Connection.send "Connection from #{tcp_client_addr client} established!\n"
+    #client |> Socket.Stream.send("Connection from #{tcp_client_addr client} established!\n")
+    Task.start (fn -> client_loop(connection) end)
     log_tcp("Waiting next connection")
 
     tcp_loop(socket)
   end
+
+  defp client_loop(connection) do
+    Connection.onRecv(connection, &callback/2)
+  end
+
+  defp callback(conn, data) do
+    data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
+    log("Received: #{data}", :info, conn |> Map.get(:protocol))
+    response = RequestHandler.handle(data)
+    log("Response: #{response}", :info, conn |> Map.get(:protocol))
+    conn |> Connection.send(response)
+  end
+
   defp tcp_client_loop(client) do
     try do
       data = client |> Socket.Stream.recv! 
@@ -52,6 +67,7 @@ defmodule DonutsServer do
   end
   defp udp_loop(socket) do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
+    connection=Connection.init(client) |> IO.inspect
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
     log_udp("Received from #{udp_client_addr client}: " <> data)
     response = RequestHandler.handle(data)
@@ -71,6 +87,7 @@ defmodule DonutsServer do
   defp websocket_loop(socket) do
     client = socket |> Socket.Web.accept! # Got client connection request
     client |> Socket.Web.accept! # Accept client connection request
+    connection=Connection.init(client) |> IO.inspect
     log_ws("Connected from #{websocket_client_addr client}")
     client |> Socket.Web.send!({:pong, "Connection from #{websocket_client_addr client} established!\n"})
     Task.start(fn -> websocket_client_loop(client) end)
@@ -118,11 +135,6 @@ defmodule DonutsServer do
   end
   defp log(msg, level, protocol \\ :none) do
     msg_to_log = "[#{protocol |> Atom.to_string |> String.upcase}] #{msg}"
-    case level do
-      :debug -> Logger.debug(msg_to_log)
-      :info -> Logger.info(msg_to_log)
-      :warn -> Logger.warn(msg_to_log)
-      :error -> Logger.error(msg_to_log)
-    end
+    Logger.log(level,msg_to_log)
   end
 end
