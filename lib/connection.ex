@@ -41,6 +41,7 @@ defmodule Connection do
     {:ok, data} = conn |> Map.get(:client) |> Socket.Stream.recv
     if is_nil(data) do
       close(conn) #TODO: close should be implemented as a callback to be implemented by developer
+      DonutsServer.log(conn,"connection closed")
       {:close, :ok}
     else
       apply(callback,[conn,data])
@@ -61,10 +62,12 @@ defmodule Connection do
         apply(callback,[conn,data])
         on_recv_websocket_impl(conn,callback)
       :close -> 
-        close(conn)
+        close(conn)#TODO: close should be implemented as a callback to be implemented by developer
+        DonutsServer.log(conn,"connection closed")
         {:close, :ok}
       {:close, atom, binary} ->
-        close(conn)
+        close(conn)#TODO: close should be implemented as a callback to be implemented by developer
+        DonutsServer.log(conn,"connection closed")
         {:close, atom}
     end 
   end

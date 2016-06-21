@@ -10,32 +10,25 @@ defmodule DonutsServer do
   end
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
-    connection=Connection.init(client)
-    log_tcp("Connected from #{Connection.readable_client_addr connection}")
-    connection |> Connection.send "Connection from #{Connection.readable_client_addr connection} established!\n"
-    Task.start (fn -> client_loop(connection) end)
-    log_tcp("Waiting next connection")
+    conn=Connection.init(client)
+    log(conn, "Connected from #{Connection.readable_client_addr conn}")
+    conn |> Connection.send "Connection from #{Connection.readable_client_addr conn} established!\n"
+    Task.start (fn -> start_client_receiver(conn) end)
+    log(conn, "Waiting next connection")
 
     tcp_loop(socket)
   end
 
-  defp client_loop(connection) do
-    Connection.on_recv(connection, &recv_callback/2)
+  defp start_client_receiver(conn) do
+    Connection.on_recv(conn, &recv_callback/2)
   end
 
   defp recv_callback(conn, data) do
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
-    log("Received: #{data}", :info, conn |> Map.get(:protocol))
+    log(conn, "Received: #{data}")
     response = RequestHandler.handle(data)
-    log("Response: #{response}", :info, conn |> Map.get(:protocol))
+    log(conn, "Response: #{response}")
     conn |> Connection.send(response)
-  end
-
-  defp tcp_client_addr(client) do
-    case :inet.peername(client) do
-    {:ok, {ipaddr, port}} -> 
-      (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
-    end
   end
 
   def udp_server do
@@ -110,8 +103,8 @@ defmodule DonutsServer do
   defp log_ws(msg, level \\ :info) do
     log(msg, level, :websocket)
   end
-  defp log(msg, level, protocol \\ :none) do
-    msg_to_log = "[#{protocol |> Atom.to_string |> String.upcase}] #{msg}"
+  def log(conn, msg, level \\ :info) do
+    msg_to_log = "[#{conn |> Map.get(:protocol) |> Atom.to_string |> String.upcase}] #{msg}"
     Logger.log(level,msg_to_log)
   end
 end
