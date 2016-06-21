@@ -10,10 +10,9 @@ defmodule DonutsServer do
   end
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
-    log_tcp("Connected from #{tcp_client_addr client}")
-    connection=Connection.init(client) |> IO.inspect
-    connection |> Connection.send "Connection from #{tcp_client_addr client} established!\n"
-    #client |> Socket.Stream.send("Connection from #{tcp_client_addr client} established!\n")
+    connection=Connection.init(client)
+    log_tcp("Connected from #{Connection.readable_client_addr connection}")
+    connection |> Connection.send "Connection from #{Connection.readable_client_addr connection} established!\n"
     Task.start (fn -> client_loop(connection) end)
     log_tcp("Waiting next connection")
 
@@ -21,37 +20,15 @@ defmodule DonutsServer do
   end
 
   defp client_loop(connection) do
-    Connection.onRecv(connection, &callback/2)
+    Connection.on_recv(connection, &recv_callback/2)
   end
 
-  defp callback(conn, data) do
+  defp recv_callback(conn, data) do
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
     log("Received: #{data}", :info, conn |> Map.get(:protocol))
     response = RequestHandler.handle(data)
     log("Response: #{response}", :info, conn |> Map.get(:protocol))
     conn |> Connection.send(response)
-  end
-
-  defp tcp_client_loop(client) do
-    try do
-      data = client |> Socket.Stream.recv! 
-      if is_nil(data) do
-        client |> Socket.Stream.close
-        log_tcp("Connection closed from client")
-      else
-        data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
-
-        log_tcp("Received: " <> data)
-        response = RequestHandler.handle(data)
-        log_tcp("To response: " <> response)
-        client |> Socket.Stream.send!(response)
-        tcp_client_loop(client)
-      end
-    rescue e -> 
-        client |> Socket.Stream.close
-        log_tcp("Connection closed exceptionally")
-        log_tcp(Exception.format(:error, e))
-    end
   end
 
   defp tcp_client_addr(client) do

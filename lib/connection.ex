@@ -25,41 +25,41 @@ defmodule Connection do
     end
   end
 
-  @spec onRecv(Connection, (... -> :ok)) :: :ok | {:close, atom} | :error
-  def onRecv(conn, callback) do
+  @spec on_recv(Connection, (... -> :ok)) :: :ok | {:close, atom} | :error
+  def on_recv(conn, callback) do
     case conn do
       %Connection{protocol: :TCP} ->
-        Task.start(fn -> onRecvTCPImpl(conn,callback)end)
+        Task.start(fn -> on_recv_tcp_impl(conn,callback)end)
       %Connection{protocol: :UDP} ->
-        Task.start(fn -> onRecvUDPImpl(conn,callback)end)
+        Task.start(fn -> on_recv_udp_impl(conn,callback)end)
       %Connection{protocol: :Websocket} ->
-        Task.start(fn -> onRecvWebsocketImpl(conn,callback)end)
+        Task.start(fn -> on_recv_websocket_impl(conn,callback)end)
     end
   end
 
-  defp onRecvTCPImpl(conn, callback) do
+  defp on_recv_tcp_impl(conn, callback) do
     {:ok, data} = conn |> Map.get(:client) |> Socket.Stream.recv
     if is_nil(data) do
       close(conn) #TODO: close should be implemented as a callback to be implemented by developer
       {:close, :ok}
     else
       apply(callback,[conn,data])
-      onRecvTCPImpl(conn,callback)
+      on_recv_tcp_impl(conn,callback)
     end
   end
 
-  defp onRecvUDPImpl(conn, callback) do
+  defp on_recv_udp_impl(conn, callback) do
     {client, socket} = (conn |> Map.get(:client))
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
     apply(callback,[conn,data])
-    onRecvUDPImpl(conn,callback)
+    on_recv_udp_impl(conn,callback)
   end
 
-  defp onRecvWebsocketImpl(conn, callback) do
+  defp on_recv_websocket_impl(conn, callback) do
     case conn |> Map.get(:client) |> Socket.Web.recv! do
       {:text, data} -> 
         apply(callback,[conn,data])
-        onRecvWebsocketImpl(conn,callback)
+        on_recv_websocket_impl(conn,callback)
       :close -> 
         close(conn)
         {:close, :ok}
@@ -68,6 +68,28 @@ defmodule Connection do
         {:close, atom}
     end 
   end
+
+  def readable_client_addr(conn) do
+    {ipaddr, port} = client_addr(conn)
+    (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
+  end
+  def client_addr(conn) do 
+    case conn do
+      %Connection{protocol: :TCP, client: client} ->
+        case :inet.peername(client) do
+          {:ok, {ipaddr, port}} -> 
+            {ipaddr,port}
+        end
+      %Connection{protocol: :UDP, client: {socket, client}} ->
+        client
+      %Connection{protocol: :Websocket, client: client} ->
+        case client |> Map.get(:socket) |> :inet.peername do
+          {:ok, {ipaddr, port}} -> 
+            {ipaddr, port}
+        end
+    end
+  end
+
 
   def close(conn) do
     case conn do
