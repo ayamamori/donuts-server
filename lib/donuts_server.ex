@@ -4,6 +4,7 @@ defmodule DonutsServer do
     IO.puts "`mix run -e DonutsServer.run` will run this script "
   end
 
+  @spec recv_callback(Connection.t, any) :: :ok | {:error, term}
   defp recv_callback(conn, data) do
     data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
     log(conn, "Received: #{data}")
@@ -12,6 +13,7 @@ defmodule DonutsServer do
     conn |> Connection.send(response)
   end
 
+  @spec start_client_receiver(Connection.t) :: any
   defp start_client_receiver(conn) do
     Connection.on_recv(conn, &recv_callback/2)
   end
@@ -20,6 +22,8 @@ defmodule DonutsServer do
     {:ok, server} = Socket.TCP.listen 40000
     tcp_loop(server)
   end
+
+  @spec tcp_loop(Socket.t) :: any
   defp tcp_loop(socket) do
     {:ok, client} = socket |> Socket.accept 
     conn=Connection.init(client)
@@ -36,6 +40,7 @@ defmodule DonutsServer do
     {:ok, socket} = Socket.UDP.open 40001
     udp_loop socket
   end
+  @spec udp_loop(Socket.t) :: any
   defp udp_loop(socket) do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
     conn=Connection.init({socket,client})

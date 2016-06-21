@@ -1,7 +1,12 @@
 defmodule Connection do
   defstruct [:protocol, :client]
 
-  @spec init(Port | {Socket.t, {Socket.Address.t, :inet.port_number}} | %Socket.Web{}) :: Connection
+  @type t :: %Connection{
+    protocol: atom, 
+    client: Port | {Socket.t, {Socket.Address.t, :inet.port_number}} | %Socket.Web{}
+  }
+
+  @spec init(Port | {Socket.t, {Socket.Address.t, :inet.port_number}} | %Socket.Web{}) :: Connection.t
   def init(client) do
     case client do
       client when is_port(client) ->
@@ -13,7 +18,7 @@ defmodule Connection do
     end
   end
 
-  @spec send(Connection, any) :: :ok | {:error, term}
+  @spec send(Connection.t, any) :: :ok | {:error, term}
   def send(conn, payload) do
     case conn do
       %Connection{protocol: :TCP, client: client} ->
@@ -25,8 +30,11 @@ defmodule Connection do
     end
   end
 
-  @doc "For TCP, Websocket"
-  @spec on_recv(Connection, (... -> :ok)) :: :ok | {:close, atom} | :error
+  @doc """
+  Start new process for receiving from client and callback server logic.
+  For TCP, Websocket.
+  """
+  @spec on_recv(Connection.t, (... -> :ok)) :: :ok | {:close, atom} | :error
   def on_recv(conn, callback) do
     case conn do
       %Connection{protocol: :TCP} ->
@@ -36,7 +44,7 @@ defmodule Connection do
     end
   end
 
-  @spec on_recv_tcp_impl(Connection, (... -> :ok)) :: :ok | {:close, atom} | :error
+  @spec on_recv_tcp_impl(Connection.t, (... -> :ok)) :: :ok | {:close, atom} | :error
   defp on_recv_tcp_impl(conn, callback) do
     {:ok, data} = conn |> Map.get(:client) |> Socket.Stream.recv
     if is_nil(data) do
@@ -49,7 +57,7 @@ defmodule Connection do
     end
   end
 
-  @spec on_recv_websocket_impl(Connection, (... -> :ok)) :: :ok | {:close, atom} | :error
+  @spec on_recv_websocket_impl(Connection.t, (... -> :ok)) :: :ok | {:close, atom} | :error
   defp on_recv_websocket_impl(conn, callback) do
     case conn |> Map.get(:client) |> Socket.Web.recv! do
       {:text, data} -> 
@@ -66,13 +74,13 @@ defmodule Connection do
     end 
   end
 
-  @spec readable_client_addr(Connection) :: String.t
+  @spec readable_client_addr(Connection.t) :: String.t
   def readable_client_addr(conn) do
     {ipaddr, port} = client_addr(conn)
     (ipaddr |> Tuple.to_list |> Enum.join(".")) <> ":" <> Integer.to_string(port)
   end
 
-  @spec client_addr(Connection) :: {Socket.Address.t, :inet.port_number}
+  @spec client_addr(Connection.t) :: {Socket.Address.t, :inet.port_number}
   def client_addr(conn) do 
     case conn do
       %Connection{protocol: :TCP, client: client} ->
@@ -91,7 +99,7 @@ defmodule Connection do
   end
 
   @doc "For TCP, Websocket"
-  @spec close(Connection) :: :ok
+  @spec close(Connection.t) :: :ok
   def close(conn) do
     case conn do
       %Connection{protocol: :TCP, client: client} ->
