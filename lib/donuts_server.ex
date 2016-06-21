@@ -24,7 +24,7 @@ defmodule DonutsServer do
     {:ok, client} = socket |> Socket.accept 
     conn=Connection.init(client)
     log(conn, "Connected from #{Connection.readable_client_addr conn}")
-    conn |> Connection.send "Connection from #{Connection.readable_client_addr conn} established!\n"
+    conn |> Connection.send("Connection from #{Connection.readable_client_addr conn} established!\n")
     start_client_receiver(conn)
     log(conn, "Waiting next connection")
 
