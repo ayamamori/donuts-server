@@ -34,7 +34,7 @@ defmodule Connection do
   Start new process for receiving from client and callback server logic.
   For TCP, Websocket.
   """
-  @spec on_recv(Connection.t, (... -> :ok)) :: :ok | {:close, atom} | :error
+  @spec on_recv(Connection.t, (... -> :ok)) :: {:ok, pid()} 
   def on_recv(conn, callback) do
     case conn do
       %Connection{protocol: :TCP} ->
@@ -44,7 +44,7 @@ defmodule Connection do
     end
   end
 
-  @spec on_recv_tcp_impl(Connection.t, (... -> :ok)) :: :ok | {:close, atom} | :error
+  @spec on_recv_tcp_impl(Connection.t, (... -> :ok)) :: {:close, atom} 
   defp on_recv_tcp_impl(conn, callback) do
     {:ok, data} = conn |> Map.get(:client) |> Socket.Stream.recv
     if is_nil(data) do
@@ -57,7 +57,7 @@ defmodule Connection do
     end
   end
 
-  @spec on_recv_websocket_impl(Connection.t, (... -> :ok)) :: :ok | {:close, atom} | :error
+  @spec on_recv_websocket_impl(Connection.t, (... -> :ok)) :: {:close, atom}
   defp on_recv_websocket_impl(conn, callback) do
     case conn |> Map.get(:client) |> Socket.Web.recv! do
       {:text, data} -> 
