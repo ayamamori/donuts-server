@@ -4,16 +4,16 @@ defmodule DonutsServer do
     IO.puts "`mix run -e DonutsServer.run` will run this script "
   end
 
-  @spec recv_callback(Connection.t, binary) :: :ok | {:error, term}
+  @spec recv_callback(Connection.t, binary) :: :ok 
   defp recv_callback(conn, data) do
     data = data |> String.trim_trailing
     log(conn, "Received: #{data}")
     response = RequestHandler.handle(data)
     log(conn, "Response: #{response}")
-    conn |> Connection.send(response)
+    conn |> Connection.send_broadcast(response)
   end
 
-  @spec start_client_receiver(Connection.t) :: {:ok, pid}
+  @spec start_client_receiver(Connection.t) :: pid
   defp start_client_receiver(conn) do
     log(conn, "Connected from #{Connection.readable_client_addr conn}")
     conn |> Connection.send("Connection from #{Connection.readable_client_addr conn} established!\n")
@@ -22,17 +22,18 @@ defmodule DonutsServer do
 
   def tcp_server do
     {:ok, server} = Socket.TCP.listen 40000
-    tcp_loop(server)
+    session_manager=SessionManager.start_link
+    tcp_loop(session_manager, server)
   end
 
-  @spec tcp_loop(Socket.t) :: no_return
-  defp tcp_loop(socket) do
+  @spec tcp_loop(SessionManager.t, Socket.t) :: no_return
+  defp tcp_loop(session_manager, socket) do
     {:ok, client} = socket |> Socket.accept 
-    conn=Connection.init(client)
+    conn=Connection.init(session_manager, client)
     start_client_receiver(conn)
     log(conn, "Waiting next connection")
 
-    tcp_loop(socket)
+    tcp_loop(session_manager, socket)
   end
 
 
@@ -43,7 +44,7 @@ defmodule DonutsServer do
   @spec udp_loop(Socket.t) :: no_return
   defp udp_loop(socket) do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
-    conn=Connection.init({socket,client})
+    conn=Connection.init_udp(socket,client)
     recv_callback(conn,data)
 
     udp_loop socket
@@ -51,17 +52,18 @@ defmodule DonutsServer do
 
   def websocket_server do
     {:ok, server} = Socket.Web.listen 40002
-    websocket_loop server
+    session_manager=SessionManager.start_link
+    websocket_loop(session_manager, server)
   end
-  @spec udp_loop(Socket.Web.t) :: no_return
-  defp websocket_loop(socket) do
+  @spec websocket_loop(SessionManager.t, Socket.Web.t) :: no_return
+  defp websocket_loop(session_manager, socket) do
     client = socket |> Socket.Web.accept! # Got client connection request
     client |> Socket.Web.accept! # Accept client connection request
-    conn=Connection.init(client) 
+    conn=Connection.init(session_manager, client) 
     start_client_receiver(conn)
     log(conn, "Waiting next connection")
 
-    websocket_loop(socket)
+    websocket_loop(session_manager, socket)
   end
 
   @spec log(Connection.t, String.t, atom) :: any
