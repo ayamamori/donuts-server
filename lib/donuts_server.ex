@@ -6,7 +6,7 @@ defmodule DonutsServer do
 
   @spec recv_callback(Connection.t, any) :: :ok | {:error, term}
   defp recv_callback(conn, data) do
-    data = data |> String.rstrip(?\n) |> String.rstrip(?\r) |> String.rstrip(?\n)
+    data = data |> String.trim_trailing
     log(conn, "Received: #{data}")
     response = RequestHandler.handle(data)
     log(conn, "Response: #{response}")
