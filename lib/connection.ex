@@ -99,7 +99,7 @@ defmodule Connection do
   end
 
   @doc "For TCP, Websocket"
-  @spec close(Connection.t) :: :ok
+  @spec close(Connection.t) :: :ok | {:error, term}
   def close(conn) do
     case conn do
       %Connection{protocol: :TCP, client: client} ->
