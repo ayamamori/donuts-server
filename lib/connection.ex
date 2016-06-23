@@ -21,13 +21,6 @@ defmodule Connection do
     conn
   end
 
-  """
-  @doc "For UDP"
-  @spec init_udp(Socket.t, {Socket.Address.t, :inet.port_number}) :: Connection.t
-  def init_udp(socket,{ipaddr,port}) do 
-    %Connection{session_manager: nil, protocol: :UDP, client: {socket, {ipaddr, port}}}
-  end
-  """
 
   @spec send_broadcast(Connection.t, any) :: :ok 
   def send_broadcast(conn , payload) do
