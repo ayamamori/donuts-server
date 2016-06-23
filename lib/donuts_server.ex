@@ -8,7 +8,7 @@ defmodule DonutsServer do
   defp recv_callback(conn, data) do
     data = data |> String.trim_trailing
     log(conn, "Received: #{data}")
-    response = RequestHandler.handle(data)
+    response = RequestHandler.handle(conn, data)
     log(conn, "Response: #{response}")
     conn |> Connection.send_broadcast(response)
   end

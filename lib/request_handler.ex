@@ -1,16 +1,18 @@
 defmodule RequestHandler do
-  def handle(data) do
+  @spec handle(Connection.t, any) :: any
+  def handle(conn,data) do
     # method stub
+    sender=Connection.readable_client_addr(conn)
     case data do
-      "ping" -> "pong"
-      "ぬるぽ" -> "ガッ"
-      "乒" -> "乓"
-      "🍣" -> "🍕"
-      "🍕" -> "🍣"
+      "ping" -> "#{sender}: pong"
+      "ぬるぽ" -> "#{sender}: ガッ"
+      "乒" -> "#{sender}: 乓"
+      "🍣" -> "#{sender}: 🍕"
+      "🍕" -> "#{sender}: 🍣"
       x -> 
       case MessagePack.unpack(x) do
-        {:error, reason} -> "Someone sent #{x} to the donuts server\n"
-        {:ok, payload} -> handle_msgpack(payload)
+        {:error, reason} -> "#{sender} sent #{x} to the donuts server\n"
+        {:ok, payload} -> "#{sender}: #{handle_msgpack(payload)}"
       end
     end
   end
