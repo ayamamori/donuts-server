@@ -36,6 +36,7 @@ defmodule DonutsServer.Mixfile do
       {:message_pack, "~> 0.2.0"},
       {:logger_file_backend, "~> 0.0.8"},
       {:dialyxir, "~> 0.3", only: [:dev]},
+      {:ex_doc, "~> 0.11", only: :dev},
     ]
   end
 end
