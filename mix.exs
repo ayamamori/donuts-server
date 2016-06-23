@@ -4,10 +4,14 @@ defmodule DonutsServer.Mixfile do
   def project do
     [app: :donuts_server,
      version: "0.0.1",
-     elixir: "~> 1.2",
+     elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps]
+     deps: deps,
+     dialyzer: [
+       flags: ["-Werror_handling", "-Wrace_conditions", "-Wno_opaque", "-Wunderspecs"]
+     ]
+   ]
   end
 
   # Configuration for the OTP application
@@ -31,6 +35,8 @@ defmodule DonutsServer.Mixfile do
       {:socket, "~> 0.3.4"},
       {:message_pack, "~> 0.2.0"},
       {:logger_file_backend, "~> 0.0.8"},
+      {:dialyxir, "~> 0.3", only: [:test, :dev]},
+      {:ex_doc, "~> 0.11", only: :dev},
     ]
   end
 end
