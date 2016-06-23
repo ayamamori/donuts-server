@@ -68,11 +68,10 @@ defmodule Connection do
     {:ok, data} = conn |> Map.get(:client) |> Socket.Stream.recv
     if is_nil(data) do
       close(conn) #TODO: close should be implemented as a callback to be implemented by developer
-      DonutsServer.log(conn,"connection closed")
-      SessionManager.delete_session(conn)
       {:close, :ok}
     else
       apply(callback,[conn,data])
+
       on_recv_tcp_impl(conn,callback)
     end
   end
@@ -82,16 +81,13 @@ defmodule Connection do
     case conn |> Map.get(:client) |> Socket.Web.recv! do
       {:text, data} -> 
         apply(callback,[conn,data])
+
         on_recv_websocket_impl(conn,callback)
       :close -> 
         close(conn)#TODO: close should be implemented as a callback to be implemented by developer
-        DonutsServer.log(conn,"connection closed")
-        SessionManager.delete_session(conn)
         {:close, :ok}
       {:close, atom, binary} ->
         close(conn)#TODO: close should be implemented as a callback to be implemented by developer
-        DonutsServer.log(conn,"connection closed")
-        SessionManager.delete_session(conn)
         {:close, atom}
     end 
   end
@@ -123,6 +119,8 @@ defmodule Connection do
   @doc "For TCP, Websocket"
   @spec close(Connection.t) :: :ok | {:error, term}
   def close(conn) do
+    DonutsServer.log(conn,"connection closed")
+    SessionManager.delete_session(conn)
     case conn do
       %Connection{protocol: :TCP, client: client} ->
         client |> Socket.Stream.close
