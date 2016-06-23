@@ -3,26 +3,31 @@ defmodule RequestHandler do
   def handle(conn,data) do
     # method stub
     sender=Connection.readable_client_addr(conn)
-    case data do
-      "ping" -> "#{sender}: pong"
-      "ぬるぽ" -> "#{sender}: ガッ"
-      "乒" -> "#{sender}: 乓"
-      "🍣" -> "#{sender}: 🍕"
-      "🍕" -> "#{sender}: 🍣"
-      x -> 
-      case MessagePack.unpack(x) do
-        {:error, reason} -> "#{sender} sent #{x} to the donuts server\n"
-        {:ok, payload} -> "#{sender}: #{handle_msgpack(payload)}"
-      end
+    case MessagePack.unpack(data) do
+      {:error, reason} -> 
+        case r(data) do
+          :idk -> "#{sender} sent #{data} to the donuts server\n"
+          {:ok, resp} -> "#{resp}\n"
+        end
+      {:ok, payload} -> handle_msgpack(payload)
     end
   end
   defp handle_msgpack(payload) do
-    resp = case payload do
-      x when is_integer(x) -> x
-      "乒" -> "乓"
-      "ping" -> "pong"
-      x -> ["Some msgpack received, but couldn't be recognized", x]
+    resp = case r(payload) do
+      :idk -> ["Some msgpack received, but couldn't be recognized", payload]
+      {:ok, resp} -> resp
     end 
     MessagePack.pack!(resp)
+  end
+  defp r(data) do
+    case data do
+      x when is_integer(x) -> {:ok, x}
+      "ping" -> {:ok, "pong"}
+      "ぬるぽ" -> {:ok, "ガッ"}
+      "乒" -> {:ok, "乓"}
+      "🍣" -> {:ok, "🍕"}
+      "🍕" -> {:ok, "🍣"}
+      x -> :idk
+    end
   end
 end
