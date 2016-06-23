@@ -30,10 +30,8 @@ defmodule Connection do
   """
 
   @spec send_broadcast(Connection.t, any) :: :ok 
-  def send_broadcast(%Connection{protocol: protocol, client: client, session_manager: session_manager}, payload) do
-    case protocol do
-      other -> session_manager |> SessionManager.get_all |> Enum.each(fn conn -> Connection.send(conn, payload)end)
-    end
+  def send_broadcast(conn , payload) do
+    conn |> SessionManager.get_all |> Enum.each(fn conn -> Connection.send(conn, payload)end)
   end
 
   @spec send(Connection.t, any) :: :ok | {:error, term}
@@ -55,10 +53,10 @@ defmodule Connection do
   @spec on_recv(Connection.t, (... -> :ok)) :: pid() 
   def on_recv(conn, callback) do
     case conn do
-      %Connection{protocol: :TCP, session_manager: session_manager} ->
+      %Connection{protocol: :TCP} ->
         {:ok, pid}=Task.start(fn -> on_recv_tcp_impl(conn,callback)end)
         pid
-      %Connection{protocol: :Websocket, session_manager: session_manager} ->
+      %Connection{protocol: :Websocket} ->
         {:ok, pid}=Task.start(fn -> on_recv_websocket_impl(conn,callback)end)
         pid
     end

@@ -3,7 +3,7 @@ defmodule SessionManager do
 
   @type t :: %SessionManager{agent: pid}
   
-  @spec start_link :: %SessionManager{}
+  @spec start_link :: SessionManager.t
   def start_link do
     {:ok, agent} = Agent.start_link(fn -> %{} end)
     %SessionManager{agent: agent}
@@ -20,8 +20,8 @@ defmodule SessionManager do
     Agent.update(agent, fn map -> Map.delete(map, client) end)
   end
 
-  @spec get_all(%SessionManager{}) :: [Connection.t]
-  def get_all(%SessionManager{agent: agent}) do
+  @spec get_all(Connection.t) :: [Connection.t]
+  def get_all(%Connection{session_manager: %SessionManager{agent: agent}}=conn) do
     Agent.get(agent, fn map -> map end) |> Map.values
   end
 end
