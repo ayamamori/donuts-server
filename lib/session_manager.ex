@@ -5,21 +5,23 @@ defmodule SessionManager do
   
   @spec start_link :: %SessionManager{}
   def start_link do
-    {:ok, agent} = Agent.start_link(fn -> [] end)
+    {:ok, agent} = Agent.start_link(fn -> %{} end)
     %SessionManager{agent: agent}
   end
 
-  @spec add_session(%SessionManager{}, {pid, Connection.t}) :: :ok
-  def add_session(%SessionManager{agent: agent}, session) do
-    Agent.update(agent, fn list -> [session] ++list end)
+  @spec add_session(Connection.t) :: :ok
+  def add_session(conn) do
+    %Connection{client: client, session_manager: %SessionManager{agent: agent}} = conn
+    Agent.update(agent, fn map -> Map.put(map, client, conn) end)
   end
-  @spec delete_session(%SessionManager{}, pid) :: :ok
-  def delete_session(%SessionManager{agent: agent}, session) do
-    Agent.update(agent, fn list -> List.keydelete(list, session ,0) end)
+  @spec delete_session(Connection.t) :: :ok
+  def delete_session(conn) do
+    %Connection{client: client, session_manager: %SessionManager{agent: agent}} = conn
+    Agent.update(agent, fn map -> Map.delete(map, client) end)
   end
 
-  @spec get_all(%SessionManager{}) :: [{pid, Connection.t}]
+  @spec get_all(%SessionManager{}) :: [Connection.t]
   def get_all(%SessionManager{agent: agent}) do
-    Agent.get(agent, fn list -> list end)
+    Agent.get(agent, fn map -> map end) |> Map.values
   end
 end

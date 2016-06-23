@@ -9,7 +9,7 @@ defmodule RequestHandler do
       "🍕" -> "🍣"
       x -> 
       case MessagePack.unpack(x) do
-        {:error, reason} -> "You sent #{x} to the donuts server\n"
+        {:error, reason} -> "Someone sent #{x} to the donuts server\n"
         {:ok, payload} -> handle_msgpack(payload)
       end
     end

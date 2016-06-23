@@ -39,15 +39,16 @@ defmodule DonutsServer do
 
   def udp_server do
     {:ok, socket} = Socket.UDP.open 40001
-    udp_loop socket
+    session_manager=SessionManager.start_link
+    udp_loop(session_manager, socket)
   end
-  @spec udp_loop(Socket.t) :: no_return
-  defp udp_loop(socket) do
+  @spec udp_loop(SessionManager.t, Socket.t) :: no_return
+  defp udp_loop(session_manager, socket) do
     {:ok, {data, client}} = socket |> Socket.Datagram.recv 
-    conn=Connection.init_udp(socket,client)
+    conn=Connection.init(session_manager, {socket,client})
     recv_callback(conn,data)
 
-    udp_loop socket
+    udp_loop(session_manager, socket)
   end
 
   def websocket_server do
