@@ -13,10 +13,11 @@ defmodule RequestHandler do
     end
   end
   defp handle_msgpack(payload) do
-    resp = case r(payload) do
-      :idk -> ["Some msgpack received, but couldn't be recognized", payload]
-      {:ok, resp} -> resp
-    end 
+    resp = payload
+    #resp = case r(payload) do
+      #:idk -> ["Some msgpack received, but couldn't be recognized", payload]
+      #{:ok, resp} -> resp
+      #end 
     MessagePack.pack!(resp)
   end
   defp r(data) do

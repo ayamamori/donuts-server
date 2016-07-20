@@ -16,7 +16,7 @@ defmodule DonutsServer do
   @spec start_client_receiver(Connection.t) :: pid
   defp start_client_receiver(conn) do
     log(conn, "Connected from #{Connection.readable_client_addr conn}")
-    conn |> Connection.send("Connection from #{Connection.readable_client_addr conn} established!\n")
+    #conn |> Connection.send("Connection from #{Connection.readable_client_addr conn} established!\n")
     Connection.on_recv(conn, &recv_callback/2)
   end
 
