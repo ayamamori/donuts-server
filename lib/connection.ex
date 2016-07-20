@@ -35,7 +35,7 @@ defmodule Connection do
       %Connection{protocol: :UDP, client: {socket, client}} ->
         socket |> Socket.Datagram.send(payload, client) 
       %Connection{protocol: :Websocket, client: client} ->
-        client |> Socket.Web.send({:text, payload})
+        client |> Socket.Web.send({:binary, payload})
     end
   end
 
@@ -72,7 +72,9 @@ defmodule Connection do
     case conn |> Map.get(:client) |> Socket.Web.recv! do
       {:text, data} -> 
         apply(callback,[conn,data])
-
+        on_recv_websocket_impl(conn,callback)
+      {:binary, data} -> 
+        apply(callback,[conn,data])
         on_recv_websocket_impl(conn,callback)
       :close -> 
         close(conn)#TODO: close should be implemented as a callback to be implemented by developer
